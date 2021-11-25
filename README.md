@@ -37,4 +37,20 @@ Pillow==7.2.0
 
 ## Training code
 There are a few steps for training
-1. 
+1. In order to split the training dataset and validation dataset, run
+   ```
+   split_training_validation.py
+   ```
+   Modify line 37 if you want more or less validation data.\
+   This program will produce ```Train_GT.json``` and ```Valid_GT.json```.
+2. For the anchor boxes prior, run
+    ```
+    anchor_kmeans.py
+    ```
+    The program will output 9 anchor boxes sizes.\
+    Then do the following steps by hand.\
+    Dividing them by 8, 16 and 32, then fill the value into ```config.py```\
+    See the comment in line 92 ~ 100 in ```anchor_kmeans.py``` and line 19 ~ 21 in ```config.py``` 
+3. (Optional) Modify the hyper-parameters in ```config.py``` before training.
+4. run ```train.py```.
+

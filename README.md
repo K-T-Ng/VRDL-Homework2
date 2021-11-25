@@ -18,7 +18,7 @@ The following is the Folder structure
     ├──dataset
        ├──DataInfo
           ├──answer.zip
-          ├──digitStruct.mat  # put digitStruct here
+          ├──digitStruct.mat
           ├──Train_GT.json
           ├──Valid_GT.json
           ├──Valid_PD.json

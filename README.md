@@ -63,7 +63,7 @@ There are a few steps for training
 ## Inference code
 There are two ways to reproduce the answer.json
 1. After performing all steps in ```Folder Structure``` section, with the same setting of config.py, run<br /> ```python inference.py``` <br /> The answer.json file can be found in ```.dataset/DataInfo/answer.json```.
-2. Follow the procedure in ```inference.ipynb```.
+2. Follow the procedure in ```inference.ipynb```<br /> https://colab.research.google.com/drive/1WsN3exfdyVvTwyI0jRpmULMS2Ox0qbcH?usp=sharing.
 
 
 ## Reference

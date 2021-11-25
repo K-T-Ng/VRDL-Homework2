@@ -4,7 +4,7 @@ import random
 
 import scipy.io as sio
 
-from functions.HelperFunction import numpy2int
+from function.HelperFunction import numpy2int
 
 if __name__ == '__main__':
     # collect information from ./dataset/DataInfo/digitStruct.mat

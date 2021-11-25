@@ -5,6 +5,7 @@ import torch.nn.functional as F
 
 import config as cfg
 
+
 # ======================== Mish activation ====================
 class Mish(nn.Module):
     def __init__(self):
@@ -12,6 +13,7 @@ class Mish(nn.Module):
 
     def forward(self, x):
         return x * torch.tanh(F.softplus(x))
+
 
 # ========================= custom layer =======================
 class Convolutional(nn.Module):
@@ -30,7 +32,7 @@ class Convolutional(nn.Module):
         activation     : (str), the name of activation function
         '''
         super(Convolutional, self).__init__()
-        
+
         self.use_bn = batch_norm
         self.activation = activation
 
@@ -40,7 +42,7 @@ class Convolutional(nn.Module):
                               stride=stride,
                               kernel_size=size,
                               padding=padding,
-                              bias=not self.use_bn) # bn has bias already
+                              bias=not self.use_bn)  # bn has bias already
 
         if self.use_bn:
             self.batchnorm = nn.BatchNorm2d(filters_out)
@@ -59,6 +61,7 @@ class Convolutional(nn.Module):
             x = self.activate(x)
         return x
 
+
 class Upsample(nn.Module):
     def __init__(self, scale_factor=2, mode='nearest'):
         super(Upsample, self).__init__()
@@ -68,6 +71,7 @@ class Upsample(nn.Module):
     def forward(self, x):
         return F.interpolate(x, scale_factor=self.scale_factor, mode=self.mode)
 
+
 class Route(nn.Module):
     def __init__(self):
         super(Route, self).__init__()
@@ -75,15 +79,16 @@ class Route(nn.Module):
     def forward(self, x1, x2):
         out = torch.cat((x2, x1), dim=1)
         return out
-    
+
+
 # ======================= custom residual block ======================
 class Residual_Block(nn.Module):
     def __init__(self, filters_in, filters_embed, filters_out):
         super(Residual_Block, self).__init__()
         self.conv1 = Convolutional(True, filters_in, filters_embed,
-                                    size=1, stride=1, pad=1, activation="leaky")
+                                   size=1, stride=1, pad=1, activation="leaky")
         self.conv2 = Convolutional(True, filters_embed, filters_out,
-                                    size=3, stride=1, pad=1, activation="leaky")
+                                   size=3, stride=1, pad=1, activation="leaky")
 
     def forward(self, x):
         short_cut = x
@@ -92,6 +97,8 @@ class Residual_Block(nn.Module):
         out = short_cut + x
 
         return out
+
+
 # ======================= Darknet 53 backbone =======================
 class Darknet53(nn.Module):
     def __init__(self):
@@ -101,23 +108,22 @@ class Darknet53(nn.Module):
         '''
         # convolution
         self.conv_0_0 = Convolutional(filters_in=3, filters_out=32,
-                                       size=3, stride=1, pad=True,
-                                       batch_norm=True, activation='leaky')
-        
+                                      size=3, stride=1, pad=True,
+                                      batch_norm=True, activation='leaky')
+
         # down sampling convoluation
         self.conv_0_1 = Convolutional(filters_in=32, filters_out=64,
-                                       size=3, stride=2, pad=True,
-                                       batch_norm=True, activation='leaky')
+                                      size=3, stride=2, pad=True,
+                                      batch_norm=True, activation='leaky')
 
         # residual block * 1
         f_in, f_out, f_embed = 64, 64, 32
         self.resblock_1_0 = Residual_Block(f_in, f_embed, f_out)
-        
 
         # down sampling convoluation
         self.conv_1_1 = Convolutional(filters_in=64, filters_out=128,
-                                       size=3, stride=2, pad=True,
-                                       batch_norm=True, activation='leaky')
+                                      size=3, stride=2, pad=True,
+                                      batch_norm=True, activation='leaky')
 
         # residual block * 2
         f_in, f_out, f_embed = 128, 128, 64
@@ -126,8 +132,8 @@ class Darknet53(nn.Module):
 
         # down sampling convoluation
         self.conv_2_2 = Convolutional(filters_in=128, filters_out=256,
-                                       size=3, stride=2, pad=True,
-                                       batch_norm=True, activation='leaky')
+                                      size=3, stride=2, pad=True,
+                                      batch_norm=True, activation='leaky')
 
         # residual block * 8
         f_in, f_out, f_embed = 256, 256, 128
@@ -142,8 +148,8 @@ class Darknet53(nn.Module):
 
         # down sampling convoluation
         self.conv_3_8 = Convolutional(filters_in=256, filters_out=512,
-                                       size=3, stride=2, pad=True,
-                                       batch_norm=True, activation='leaky')
+                                      size=3, stride=2, pad=True,
+                                      batch_norm=True, activation='leaky')
 
         # residual block * 8
         f_in, f_out, f_embed = 512, 512, 256
@@ -158,9 +164,9 @@ class Darknet53(nn.Module):
 
         # down sampling convoluation
         self.conv_4_8 = Convolutional(filters_in=512, filters_out=1024,
-                                       size=3, stride=2, pad=True,
-                                       batch_norm=True, activation='leaky')
-        
+                                      size=3, stride=2, pad=True,
+                                      batch_norm=True, activation='leaky')
+
         # residual block * 4
         f_in, f_out, f_embed = 1024, 1024, 512
         self.resblock_5_0 = Residual_Block(f_in, f_embed, f_out)
@@ -176,47 +182,49 @@ class Darknet53(nn.Module):
             - after resblock_5_3
         '''
         # suppose x's shape is (3,608,608)
-        x = self.conv_0_0(x)     # (32,608,608)
-        
-        x = self.conv_0_1(x)     # (64,304,304)
-        x = self.resblock_1_0(x) # (64,304,304)
-        
-        x = self.conv_1_1(x)     # (128,152,152)
-        x = self.resblock_2_0(x) # (128,152,152)
-        x = self.resblock_2_1(x) # (128,152,152)
-       
-        x = self.conv_2_2(x)     # (256,76,76)
-        x = self.resblock_3_0(x) # (256,76,76)
-        x = self.resblock_3_1(x) # (256,76,76)
-        x = self.resblock_3_2(x) # (256,76,76)
-        x = self.resblock_3_3(x) # (256,76,76)
-        x = self.resblock_3_4(x) # (256,76,76)
-        x = self.resblock_3_5(x) # (256,76,76)
-        x = self.resblock_3_6(x) # (256,76,76)
-        small = self.resblock_3_7(x) # (256,76,76)
-        
-        x = self.conv_3_8(small) # (512,38,38)
-        x = self.resblock_4_0(x) # (512,38,38)
-        x = self.resblock_4_1(x) # (512,38,38)
-        x = self.resblock_4_2(x) # (512,38,38)
-        x = self.resblock_4_3(x) # (512,38,38)
-        x = self.resblock_4_4(x) # (512,38,38)
-        x = self.resblock_4_5(x) # (512,38,38)
-        x = self.resblock_4_6(x) # (512,38,38)
-        medium = self.resblock_4_7(x) # (512,38,38)
-        
-        x = self.conv_4_8(medium) # (1024,19,19)
-        x = self.resblock_5_0(x)  # (1024,19,19)
-        x = self.resblock_5_1(x)  # (1024,19,19)
-        x = self.resblock_5_2(x)  # (1024,19,19)
-        large = self.resblock_5_3(x)  # (1024,19,19)
-        
+        x = self.conv_0_0(x)      # (32,608,608)
+
+        x = self.conv_0_1(x)      # (64,304,304)
+        x = self.resblock_1_0(x)  # (64,304,304)
+
+        x = self.conv_1_1(x)      # (128,152,152)
+        x = self.resblock_2_0(x)  # (128,152,152)
+        x = self.resblock_2_1(x)  # (128,152,152)
+
+        x = self.conv_2_2(x)      # (256,76,76)
+        x = self.resblock_3_0(x)  # (256,76,76)
+        x = self.resblock_3_1(x)  # (256,76,76)
+        x = self.resblock_3_2(x)  # (256,76,76)
+        x = self.resblock_3_3(x)  # (256,76,76)
+        x = self.resblock_3_4(x)  # (256,76,76)
+        x = self.resblock_3_5(x)  # (256,76,76)
+        x = self.resblock_3_6(x)  # (256,76,76)
+        small = self.resblock_3_7(x)  # (256,76,76)
+
+        x = self.conv_3_8(small)  # (512,38,38)
+        x = self.resblock_4_0(x)  # (512,38,38)
+        x = self.resblock_4_1(x)  # (512,38,38)
+        x = self.resblock_4_2(x)  # (512,38,38)
+        x = self.resblock_4_3(x)  # (512,38,38)
+        x = self.resblock_4_4(x)  # (512,38,38)
+        x = self.resblock_4_5(x)  # (512,38,38)
+        x = self.resblock_4_6(x)  # (512,38,38)
+        medium = self.resblock_4_7(x)  # (512,38,38)
+
+        x = self.conv_4_8(medium)  # (1024,19,19)
+        x = self.resblock_5_0(x)   # (1024,19,19)
+        x = self.resblock_5_1(x)   # (1024,19,19)
+        x = self.resblock_5_2(x)   # (1024,19,19)
+        large = self.resblock_5_3(x)   # (1024,19,19)
+
         return small, medium, large
+
+
 # ==================== yolo fpn =================================
 class FPN_YOLOV3(nn.Module):
     def __init__(self, filters_in, filters_out):
         super(FPN_YOLOV3, self).__init__()
-        
+
         fi_0, fi_1, fi_2 = filters_in
         fo_0, fo_1, fo_2 = filters_out
 
@@ -225,74 +233,74 @@ class FPN_YOLOV3(nn.Module):
         # large
         self.large_convset = nn.Sequential(
             Convolutional(filters_in=fi_0, filters_out=512, size=1, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=512, filters_out=1024, size=3, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=1024, filters_out=512, size=1, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=512, filters_out=1024, size=3, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=1024, filters_out=512, size=1, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
         )
         self.large_conv_1 = \
             Convolutional(filters_in=512, filters_out=1024, size=3, stride=1,
-                           pad=True, batch_norm=True, activation='mish')
+                          pad=True, batch_norm=True, activation='mish')
         self.large_conv_2 = \
             Convolutional(filters_in=1024, filters_out=fo_0, size=1, stride=1,
-                           pad=True, batch_norm=True, activation=None)
-        
+                          pad=True, batch_norm=True, activation=None)
+
         # medium
         self.medium_conv_0 = \
             Convolutional(filters_in=512, filters_out=256, size=1, stride=1,
-                           pad=True, batch_norm=True, activation='mish')       
+                          pad=True, batch_norm=True, activation='mish')
         self.medium_upsample = Upsample(scale_factor=2)
         self.medium_route = Route()
 
         self.medium_convset = nn.Sequential(
             Convolutional(filters_in=fi_1, filters_out=256, size=1, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=256, filters_out=512, size=3, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=512, filters_out=256, size=1, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=256, filters_out=512, size=3, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=512, filters_out=256, size=1, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
         )
         self.medium_conv_1 = \
             Convolutional(filters_in=256, filters_out=512, size=3, stride=1,
-                           pad=True, batch_norm=True, activation='mish')
+                          pad=True, batch_norm=True, activation='mish')
         self.medium_conv_2 = \
             Convolutional(filters_in=512, filters_out=fo_1, size=1, stride=1,
-                           pad=True, batch_norm=True, activation=None)
-        
+                          pad=True, batch_norm=True, activation=None)
+
         # small
         self.small_conv_0 = \
             Convolutional(filters_in=256, filters_out=128, size=1, stride=1,
-                           pad=True, batch_norm=True, activation='mish')
+                          pad=True, batch_norm=True, activation='mish')
         self.small_upsample = Upsample(scale_factor=2)
         self.small_route = Route()
 
         self.small_convset = nn.Sequential(
             Convolutional(filters_in=fi_2, filters_out=128, size=1, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=128, filters_out=256, size=3, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=256, filters_out=128, size=1, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=128, filters_out=256, size=3, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
             Convolutional(filters_in=256, filters_out=128, size=1, stride=1,
-                           pad=True, batch_norm=True, activation='mish'),
+                          pad=True, batch_norm=True, activation='mish'),
         )
         self.small_conv_1 = \
             Convolutional(filters_in=128, filters_out=256, size=3, stride=1,
-                           pad=True, batch_norm=True, activation='mish')
+                          pad=True, batch_norm=True, activation='mish')
         self.small_conv_2 = \
             Convolutional(filters_in=256, filters_out=fo_2, size=1, stride=1,
-                           pad=True, batch_norm=True, activation=None)
+                          pad=True, batch_norm=True, activation=None)
 
     def forward(self, x0, x1, x2):
         '''
@@ -303,15 +311,15 @@ class FPN_YOLOV3(nn.Module):
         # large
         temp_L = self.large_convset(x0)
         out_L = self.large_conv_1(temp_L)
-        out_L = self.large_conv_2(out_L) # (19,19,255)
-        
+        out_L = self.large_conv_2(out_L)  # (19,19,255)
+
         # medium
         temp_M = self.medium_conv_0(temp_L)
         temp_M = self.medium_upsample(temp_M)
         temp_M = self.medium_route(x1, temp_M)
         temp_M = self.medium_convset(temp_M)
         out_M = self.medium_conv_1(temp_M)
-        out_M = self.medium_conv_2(out_M) # (38,38,255)
+        out_M = self.medium_conv_2(out_M)  # (38,38,255)
 
         # small
         temp_S = self.small_conv_0(temp_M)
@@ -319,17 +327,18 @@ class FPN_YOLOV3(nn.Module):
         temp_S = self.small_route(x2, temp_S)
         temp_S = self.small_convset(temp_S)
         out_S = self.small_conv_1(temp_S)
-        out_S = self.small_conv_2(out_S) # (76,76,255)
+        out_S = self.small_conv_2(out_S)  # (76,76,255)
 
-        return out_S, out_M, out_L # small, medium, large
+        return out_S, out_M, out_L  # small, medium, large
+
 
 # ======================= yolo head ====================
 class Yolo_head(nn.Module):
     def __init__(self, num_class, anchors, stride):
         super(Yolo_head, self).__init__()
 
-        self.anchors = anchors # (n_anchors, 2) tensor, indicating W and H
-        self.stride = stride   # int
+        self.anchors = anchors  # (n_anchors, 2) tensor, indicating W and H
+        self.stride = stride    # int
         self.num_cls = num_class
         self.num_anc = len(anchors)
 
@@ -369,10 +378,10 @@ class Yolo_head(nn.Module):
         stride = self.stride
         anchors = (1.0 * self.anchors).to(device)
 
-        txty = p[..., 0:2] # (4,19,19,3,2)
-        twth = p[..., 2:4] # (4,19,19,3,2)
-        conf = p[..., 4:5] # (4,19,19,3,1)
-        prob = p[..., 5:]  # (4,19,19,3,80)
+        txty = p[..., 0:2]  # (4,19,19,3,2)
+        twth = p[..., 2:4]  # (4,19,19,3,2)
+        conf = p[..., 4:5]  # (4,19,19,3,1)
+        prob = p[..., 5:]   # (4,19,19,3,80)
 
         # y: (19) -> (19,1) -> (19,19),  y[i][j] = i
         # x: (19) -> (1,19) -> (19,19),  x[i][j] = j
@@ -381,21 +390,22 @@ class Yolo_head(nn.Module):
         grid_xy = torch.stack([x, y], dim=-1)
         grid_xy = grid_xy.unsqueeze(0).unsqueeze(3).repeat(bs, 1, 1, 3, 1)
         grid_xy = grid_xy.float().to(device)
-        
+
         pred_xy = (torch.sigmoid(txty) + grid_xy) * stride
-        pred_wh = (torch.exp(twth).clamp(max=cfg.TRAIN["CLAMP"]) * anchors) * stride
+        pred_wh = (torch.exp(twth).clamp(max=cfg.TRAIN["CLAMP"]) * anchors) *\
+            stride
         pred_conf = torch.sigmoid(conf)
         pred_prob = torch.sigmoid(prob)
         pred_bbox = torch.cat([pred_xy, pred_wh, pred_conf, pred_prob], dim=-1)
         # (4,19,19,3,85)
-        
+
         if not self.training:
             return pred_bbox.view(-1, 5+self.num_cls)
         else:
             return pred_bbox
 
-# ========================== yolov3 =================================
 
+# ========================== yolov3 =================================
 class Yolov3(nn.Module):
     def __init__(self, init_weights=True):
         super(Yolov3, self).__init__()
@@ -415,12 +425,12 @@ class Yolov3(nn.Module):
         self.small_head = Yolo_head(num_class=self.n_class,
                                     anchors=self.anchors[0],
                                     stride=self.strides[0])
-        
+
         # medium
         self.medium_head = Yolo_head(num_class=self.n_class,
                                      anchors=self.anchors[1],
                                      stride=self.strides[1])
-        
+
         # large
         self.large_head = Yolo_head(num_class=self.n_class,
                                     anchors=self.anchors[2],
@@ -432,7 +442,7 @@ class Yolov3(nn.Module):
     def forward(self, x):
         out = []
         # If x(bs,3,608,608), 3 anchors per scale, 80 classes
-        
+
         # x_s(bs,256,76,76), x_m(bs,512,38,38), x_l(bs,1024,19,19)
         x_s, x_m, x_l = self.backbone(x)
 
@@ -442,7 +452,7 @@ class Yolov3(nn.Module):
         out.append(self.small_head(x_s))
         out.append(self.medium_head(x_m))
         out.append(self.large_head(x_l))
-        
+
         if self.training:
             p, p_d = list(zip(*out))
             return p, p_d
@@ -456,14 +466,14 @@ class Yolov3(nn.Module):
                 torch.nn.init.normal_(m.weight.data, 0.0, 0.01)
                 if m.bias is not None:
                     m.bias.data.zero_()
-                    
+
             elif isinstance(m, nn.BatchNorm2d):
                 torch.nn.init.constant_(m.weight.data, 1.0)
                 torch.nn.init.constant_(m.bias.data, 0.0)
 
     def load_darknet_weights(self, weight_file, cutoff=52):
         with open(weight_file, 'rb') as f:
-            _ = np.fromfile(f, dtype=np.int32, count=5) # header
+            _ = np.fromfile(f, dtype=np.int32, count=5)  # header
             weights = np.fromfile(f, dtype=np.float32)
         count = 0
         ptr = 0
@@ -473,13 +483,13 @@ class Yolov3(nn.Module):
                 if count == cutoff:
                     break
                 count += 1
-                
+
                 conv_layer = m.conv
                 if m.use_bn:
                     # Load BN bias, weights, running mean and variance
                     bn_layer = m.batchnorm
                     num_b = bn_layer.bias.numel()
-                    
+
                     bn_b = torch.from_numpy(weights[ptr:ptr+num_b])
                     bn_b = bn_b.view_as(bn_layer.bias.data)
                     ptr += num_b

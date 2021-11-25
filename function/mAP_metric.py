@@ -14,14 +14,14 @@ def IOU(A, B):
     '''
     area_A = (A[2]-A[0])*(A[3]-A[1])
     area_B = (B[2]-B[0])*(B[3]-B[1])
-    
+
     # the intersect box
     L, R = max(A[0], B[0]), min(A[2], B[2])
     T, B = max(A[1], B[1]), min(A[3], B[3])
     area_I = max(R-L, 0) * max(B-T, 0)
 
     return area_I / (area_A + area_B - area_I + 1e-7)
-    
+
 
 def AP_metric(PD_boxes, GT_boxes, iou_threshold=0.5, num_classes=10):
     '''
@@ -33,8 +33,8 @@ def AP_metric(PD_boxes, GT_boxes, iou_threshold=0.5, num_classes=10):
         iou_threshold: float, decide the box become TP or FP
         num_classes: int, cls_id should be in range 0 ~ num_class-1
     '''
-    AP_list = [] # record the AP for each class
-    eps = 1e-7 # for computation stability
+    AP_list = []  # record the AP for each class
+    eps = 1e-7    # for computation stability
 
     for cls in range(num_classes):
         # collect those box with cls_id == cls
@@ -76,7 +76,6 @@ def AP_metric(PD_boxes, GT_boxes, iou_threshold=0.5, num_classes=10):
                     best_gt_idx = gid
 
             if best_iou > iou_threshold:
-                #print(pd[0], best_gt_idx, best_iou, GT_counter[pd[0]])
                 if GT_counter[pd[0]][best_gt_idx] == 0:
                     # good iou, haven't predict yet
                     TP[pid] = 1
@@ -102,7 +101,8 @@ def AP_metric(PD_boxes, GT_boxes, iou_threshold=0.5, num_classes=10):
 
         AP_list.append(torch.trapz(precisions, recalls))
     return sum(AP_list) / len(AP_list)
-        
+
+
 def mAP_metric(PD_boxes, GT_boxes, num_classes=10):
     '''
     Calculate mean average precision at iou threshold

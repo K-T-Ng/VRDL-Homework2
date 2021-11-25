@@ -5,6 +5,7 @@ import random
 from PIL import Image
 from function.SVHN_Dataset import SVHN_Dataset
 
+
 def yolo_kmeans_metric(box, centroid):
     '''
     box and centroid are 2 boxes of the form (0, 0, W, H)
@@ -27,7 +28,7 @@ def yolo_kmeans_metric(box, centroid):
 
 if __name__ == '__main__':
     Dataset = SVHN_Dataset(mode='Kmeans')
-    
+
     bbox_list = []
     for i in range(len(Dataset)):
         img, boxes = Dataset[i]
@@ -35,15 +36,15 @@ if __name__ == '__main__':
         for box in boxes:
             L, T, R, B, _ = box
             bbox_list.append([0, 0, float(R-L), float(B-T)])
-            
+
         if i % 1000 == 0:
             print(i)
     ''' k means goes here '''
-    
+
     n_anchors = 9
     tolerance, dloss, loss = 1e-6, 1, -100
     max_iter, iter_id = 500, 0
-    
+
     # initalize
     centroids = random.sample(bbox_list, n_anchors)
 
@@ -53,16 +54,16 @@ if __name__ == '__main__':
         for i in range(n_anchors):
             new_groups.append([])
             new_centroids.append([0, 0, 0, 0])
-                
+
         for box in bbox_list:
             min_dist = 1
-            
+
             for c_id, centroid in enumerate(centroids):
                 dist = yolo_kmeans_metric(box, centroid)
                 if dist < min_dist:
                     min_dist = dist
                     gp_index = c_id
-            
+
             new_loss += min_dist
             new_groups[gp_index].append(box)
             new_centroids[gp_index][2] += box[2]
@@ -83,7 +84,7 @@ if __name__ == '__main__':
     for centroid in centroids:
         ANCHORS.append((centroid[2], centroid[3]))
 
-    ANCHORS.sort(key=lambda x:x[0]*x[1])
+    ANCHORS.sort(key=lambda x: x[0]*x[1])
     for anchor in ANCHORS:
         print(anchor[0], anchor[1])
 
@@ -98,4 +99,3 @@ if __name__ == '__main__':
     (80.02, 140.86)  --stride=32--> (2.525625, 4.401875)
     (102.62, 166.35) --stride=32--> (3.206875, 5.1984375)
     '''
-    

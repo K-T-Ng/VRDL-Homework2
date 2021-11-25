@@ -3,8 +3,10 @@ import json
 import numpy as np
 import scipy.io as sio
 
+
 def numpy2int(*ndarrays):
     return list(int(ndarray.squeeze()) for ndarray in ndarrays)
+
 
 def convert_bbox_type(bbox, input_type='LTWH', output_type='LTRB'):
     '''
@@ -16,7 +18,7 @@ def convert_bbox_type(bbox, input_type='LTWH', output_type='LTRB'):
         'W', 'H': Width/Height of the bbox
         'X', 'Y': Col/Row id of the center of the bbox
     }
-    
+
     Parameters:
         bbox: list containing 4 int or float
         input_type: string with 4 characters, indicate the type of input bbox
@@ -39,15 +41,13 @@ def convert_bbox_type(bbox, input_type='LTWH', output_type='LTRB'):
     elif input_type == 'LTRB':
         L, T, R, B = box
         W, H, X, Y = R-L, B-T, (L+R)/2, (T+B)/2
-    else: # input_type == 'XYWH':
+    else:  # input_type == 'XYWH':
         X, Y, W, H = box
         L, T, R, B = X-W/2, Y-H/2, X+W/2, Y+H/2
-    
+
     if output_type == 'LTWH':
         return [L, T, W, H]
     elif output_type == 'LTRB':
         return [L, T, R, B]
-    else: # output_type == 'XYWH':
+    else:  # output_type == 'XYWH':
         return [X, Y, W, H]
-
-

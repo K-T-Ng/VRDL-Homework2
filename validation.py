@@ -12,6 +12,7 @@ from function.SVHN_Dataset import SVHN_Dataset
 from function.Evaluator import Evaluator
 import config as cfg
 
+
 def show(imgs):
     if not isinstance(imgs, list):
         imgs = [imgs]
@@ -26,9 +27,10 @@ def show(imgs):
 if __name__ == '__main__':
     M = Yolov3()
     E = Evaluator(M)
+    Valid_GT = os.path.join('dataset', 'DataInfo', 'Valid_GT.json')
+    Valid_PD = os.path.join('dataset', 'DataInfo', 'Valid_PD.json')
     for files in ['29.pth']:
         weight_path = os.path.join('weights', files)
         E.evaluate(mode='Valid', model_path=weight_path, multi_scale=True)
         print(files)
-        print(E.calculate_mAP(os.path.join('dataset','DataInfo','Valid_GT.json'),
-                        os.path.join('dataset','DataInfo','Valid_PD.json')))
+        print(E.calculate_mAP(Valid_GT, Valid_PD))

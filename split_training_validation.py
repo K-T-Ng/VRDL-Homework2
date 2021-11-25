@@ -16,7 +16,7 @@ if __name__ == '__main__':
     #   image_id: int
     #   category_id: list[int], indicate the label id (0~9) for each bbox
     #   bbox: list[list[int]], indicate the bbox position (with LTWH type)
-    bbox_list = [] # result
+    bbox_list = []  # result
     for img_name, bbox in ImagesInfo:
         img_name, bbox = img_name[0], bbox[0]
         ddict = {
@@ -29,7 +29,7 @@ if __name__ == '__main__':
             ddict["category_id"].append(label % 10)
             ddict["bbox"].append([left, top, width, height])
         bbox_list.append(ddict)
-    
+
     # shuffle
     random.shuffle(bbox_list)
 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
                         }
                 Obj.append(ddict)
         return json.dumps(Obj, indent=4)
-    
+
     Train_Obj, Valid_Obj = _convert_COCO_json(Train), _convert_COCO_json(Valid)
 
     # write them into .dataset/DataInfo/{Train,Valid}_GT.json
@@ -59,5 +59,3 @@ if __name__ == '__main__':
 
     with open(os.path.join('dataset', 'DataInfo', 'Valid_GT.json'), 'w') as fp:
         fp.write(Valid_Obj)
-
-    

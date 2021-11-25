@@ -5,12 +5,14 @@ import torch.nn as nn
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 
+
 class Divide255(object):
     def __call__(self, img, boxes=None):
         if boxes is not None:
             return img.float() / 255, boxes
         else:
             return img.float() / 255
+
 
 class RandomHorizontalFlip(object):
     def __init__(self, p=0.5):
@@ -28,6 +30,7 @@ class RandomHorizontalFlip(object):
         else:
             return img
 
+
 class Resize(object):
     def __init__(self, target_shape):
         self.h, self.w = target_shape
@@ -38,7 +41,7 @@ class Resize(object):
         resize_ratio = min(1.0 * self.h / h, 1.0 * self.w / w)
         resize_w = int(resize_ratio * w)
         resize_h = int(resize_ratio * h)
-        
+
         resize_img = TF.resize(img, size=(resize_h, resize_w))
         img = torch.ones(c, self.h, self.w) * 128.0
         dw = int((self.w - resize_w) / 2)
@@ -51,6 +54,7 @@ class Resize(object):
             return img, boxes
         else:
             return img
+
 
 class LabelSmooth(object):
     def __init__(self, delta=0.01):

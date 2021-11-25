@@ -12,5 +12,3 @@ if __name__ == '__main__':
     T.yolov3.load_state_dict(
         torch.load(os.path.join('weights', '18.pth')))
     T.train()
-    
-    

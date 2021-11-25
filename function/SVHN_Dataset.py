@@ -10,11 +10,12 @@ from .HelperFunction import convert_bbox_type
 import function.Transforms as Transforms
 import config as cfg
 
+
 class SVHN_Dataset(Dataset):
     def __init__(self, root='dataset', mode='Train', img_size=416):
         self.root = root
         self.mode = mode
-        
+
         self.classes = cfg.DATA["CLASSES"]
         self.num_classes = cfg.DATA["NUM"]
         self.img_size = img_size
@@ -23,12 +24,12 @@ class SVHN_Dataset(Dataset):
             self.ImgFolder = os.path.join(root, 'Training')
             Train_GT = os.path.join(root, 'DataInfo', 'Train_GT.json')
             self.Dataset = self._parse_train(Train_GT)
-            
+
         elif mode == 'Valid':
             self.ImgFolder = os.path.join(root, 'Training')
             Valid_GT = os.path.join(root, 'DataInfo', 'Valid_GT.json')
             self.Dataset = self._parse_train(Valid_GT)
-            
+
         else:
             self.ImgFolder = os.path.join(root, 'Testing')
             self.Dataset = self._parse_test(self.ImgFolder)
@@ -39,19 +40,20 @@ class SVHN_Dataset(Dataset):
     def __getitem__(self, index):
         item = self.Dataset[index]
         img_path = os.path.join(self.ImgFolder, item[0])
-        
+
         img = read_image(os.path.join(self.ImgFolder, item[0]))
-        
+
         if self.mode in ['Valid', 'Test']:
             return img_path, img
 
         boxes = torch.tensor(list(item[1:]))
         img, boxes = Transforms.RandomHorizontalFlip()(img, boxes)
-        img, boxes = Transforms.Resize((self.img_size, self.img_size))(img, boxes)
+        img, boxes = Transforms.Resize((self.img_size, self.img_size))(img,
+                                                                       boxes)
         img, boxes = Transforms.Divide255()(img, boxes)
-        
-        slbl, mlbl, llbl, sbox, mbox, lbox= self._create_label(boxes)
-        
+
+        slbl, mlbl, llbl, sbox, mbox, lbox = self._create_label(boxes)
+
         label_sbbox = torch.from_numpy(slbl).float()
         label_mbbox = torch.from_numpy(mlbl).float()
         label_lbbox = torch.from_numpy(llbl).float()
@@ -62,8 +64,8 @@ class SVHN_Dataset(Dataset):
         if self.mode == 'Kmeans':
             return img, boxes
 
-        return img, label_sbbox, label_mbbox, label_lbbox,\
-               sbboxes, mbboxes, lbboxes
+        return img, label_sbbox, label_mbbox, label_lbbox, sbboxes,\
+            mbboxes, lbboxes
 
     def _create_label(self, bboxes):
         anchors = np.array(cfg.MODEL["ANCHORS"])
@@ -73,10 +75,10 @@ class SVHN_Dataset(Dataset):
 
         label = []
         for i in range(3):
-            label.append(np.zeros(( int(train_output_size[i]),
-                                    int(train_output_size[i]),
-                                    anchors_per_scale,
-                                    5+self.num_classes )))
+            label.append(np.zeros((int(train_output_size[i]),
+                                   int(train_output_size[i]),
+                                   anchors_per_scale,
+                                   5+self.num_classes)))
 
         bboxes_xywh = [np.zeros((50, 4)) for _ in range(3)]
         bbox_count = np.zeros((3,))
@@ -92,20 +94,23 @@ class SVHN_Dataset(Dataset):
 
             # LTRB to XYWH
             bbox_xywh = np.concatenate([(bbox_coor[2:] + bbox_coor[:2]) * 0.5,
-                                        bbox_coor[2:] - bbox_coor[:2]], axis=-1)
+                                        bbox_coor[2:] - bbox_coor[:2]],
+                                       axis=-1)
 
             # scaling to the grid (by dividing the stride)
             bbox_xywh_scaled = 1.0 * bbox_xywh[np.newaxis, :] /\
-                               strides[:, np.newaxis]
+                strides[:, np.newaxis]
 
             iou = []
             exist_positive = False
             for i in range(3):
                 anchors_xywh = np.zeros((anchors_per_scale, 4))
-                anchors_xywh[:, 0:2] = np.floor(bbox_xywh_scaled[i, 0:2].astype(np.int32)) + 0.5
+                anchors_xywh[:, 0:2] = np.floor(
+                    bbox_xywh_scaled[i, 0:2].astype(np.int32)) + 0.5
                 anchors_xywh[:, 2:4] = anchors[i]
 
-                iou_scale = iou_xywh(bbox_xywh_scaled[i][np.newaxis, :], anchors_xywh)
+                iou_scale = iou_xywh(bbox_xywh_scaled[i][np.newaxis, :],
+                                     anchors_xywh)
                 iou.append(iou_scale)
                 iou_mask = iou_scale > 0.3
 
@@ -113,11 +118,12 @@ class SVHN_Dataset(Dataset):
                 # supposed the (predefined) anchor centered at that grid
                 # and the iou of anchor and GT > 0.3
                 if np.any(iou_mask):
-                    xind, yind = np.floor(bbox_xywh_scaled[i, 0:2]).astype(np.int32)
+                    xind, yind = np.floor(
+                        bbox_xywh_scaled[i, 0:2]).astype(np.int32)
 
                     # if iou large enough, assign anchor
                     label[i][yind, xind, iou_mask, 0:4] = bbox_xywh
-                    label[i][yind, xind, iou_mask, 4:5] = 1.0 # conf. score
+                    label[i][yind, xind, iou_mask, 4:5] = 1.0  # conf. score
                     label[i][yind, xind, iou_mask, 5:] = one_hot
 
                     bbox_ind = int(bbox_count[i] % 50)
@@ -131,7 +137,8 @@ class SVHN_Dataset(Dataset):
                 best_detect = int(best_anchor_ind / anchors_per_scale)
                 best_anchor = int(best_anchor_ind % anchors_per_scale)
 
-                xind, yind = np.floor(bbox_xywh_scaled[best_detect, 0:2]).astype(np.int32)
+                xind, yind = np.floor(
+                    bbox_xywh_scaled[best_detect, 0:2]).astype(np.int32)
                 label[best_detect][yind, xind, best_anchor, 0:4] = bbox_xywh
                 label[best_detect][yind, xind, best_anchor, 4:5] = 1.0
                 label[best_detect][yind, xind, best_anchor, 5:] = one_hot
@@ -144,7 +151,7 @@ class SVHN_Dataset(Dataset):
         sbboxes, mbboxes, lbboxes = bboxes_xywh
 
         return label_sbbox, label_mbbox, label_lbbox, sbboxes, mbboxes, lbboxes
-    
+
     def _parse_train(self, path):
         '''
         return list of list, e.g.
@@ -164,7 +171,8 @@ class SVHN_Dataset(Dataset):
 
     def _parse_test(self, path):
         List = os.listdir(path)
-        return [[name] for name in List] # in order to match training pattern
+        return [[name] for name in List]  # in order to match training pattern
+
 
 def iou_xywh(A, B):
     '''
@@ -188,4 +196,3 @@ def iou_xywh(A, B):
     inter_area = inter[..., 0] * inter[..., 1]
     union_area = areaA + areaB - inter_area
     return 1.0 * inter_area / union_area
-    

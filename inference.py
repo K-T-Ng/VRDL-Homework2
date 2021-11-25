@@ -12,4 +12,4 @@ if __name__ == '__main__':
     weight_path = os.path.join('weights', '29.pth')
     
     E = Evaluator(model)
-    E.evaluate(mode='Test', model_path=weight_path, multi_scale=True)
+    E.evaluate(mode='Test', weight_path=weight_path)

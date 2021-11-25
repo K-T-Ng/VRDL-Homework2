@@ -45,13 +45,13 @@ In order to reproduce the answer.json, there are a few steps to do.
 There are a few steps for training
 1. In order to split the training dataset and validation dataset, run
    ```
-   split_training_validation.py
+   python split_training_validation.py
    ```
    Modify line 37 if you want more or less validation data.\
    This program will produce ```Train_GT.json``` and ```Valid_GT.json```.
 2. For the anchor boxes prior, run
     ```
-    anchor_kmeans.py
+    python anchor_kmeans.py
     ```
     The program will output 9 anchor boxes sizes.\
     Then do the following steps by hand.\
@@ -62,7 +62,7 @@ There are a few steps for training
 
 ## Inference code
 There are two ways to reproduce the answer.json
-1. After performing all steps in ```Folder Structure``` section, with the same setting of config.py, run\ ```inference.py``` \ The answer.json file can be found in ```.dataset/DataInfo/answer.json```.
+1. After performing all steps in ```Folder Structure``` section, with the same setting of config.py, run<br /> ```python inference.py``` <br /> The answer.json file can be found in ```.dataset/DataInfo/answer.json```.
 2. Follow the procedure in ```inference.ipynb```.
 
 
